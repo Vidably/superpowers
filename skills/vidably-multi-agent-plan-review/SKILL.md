@@ -15,9 +15,22 @@ Research shows: multi-model consensus catches 80% of bugs vs 53% for single mode
 Do NOT begin implementation until:
 1. At least 2 independent model reviews have been collected
 2. Consensus scoring has been applied to all findings
-3. Accepted findings have been fixed and the plan re-reviewed (if fixes were made)
-4. The user has reviewed and approved the final consensus map
+3. Findings have been acted on based on consensus level (see Action Policy below)
+4. If fixes were made, the plan has been re-reviewed
 </HARD-GATE>
+
+## Action Policy
+
+Act on findings autonomously based on consensus level:
+
+| Consensus     | Action                                                                                                                                       |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Unanimous** | Fix immediately -- highest confidence                                                                                                        |
+| **Majority**  | Fix -- strong signal across models                                                                                                           |
+| **Split**     | Use judgment. Fix if the finding has concrete consequences; skip if it's a style or preference disagreement. Log your reasoning.             |
+| **Solo**      | Evaluate on merit. Fix if critical severity regardless of consensus. For important/minor, fix if the reasoning is sound. Log your reasoning. |
+
+Present the consensus map to the user for awareness, but do not wait for per-finding approval. The user reviews aggregate effectiveness data periodically, not individual findings.
 
 ## Step 1: Prepare the Plan for Review
 
@@ -116,7 +129,7 @@ Present findings to the user in this format:
 - [findings that were evaluated and dismissed with reasoning]
 ```
 
-Then STOP and wait for user approval.
+Present the consensus map, then proceed to apply fixes based on the Action Policy above. The user can intervene if they disagree, but the default is autonomous action.
 
 ## Step 5: Apply Approved Changes and Re-Review
 
@@ -173,6 +186,33 @@ echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"branch\":\"$(git branch --sho
 ```
 
 Replace `MODELS_LIST` with a JSON array of model names used (e.g., `[\"codex\",\"gemini\"]`), `FINDINGS_COUNT` with total findings across all rounds, and `ROUNDS_COUNT` with the number of review rounds.
+
+## Step 6b: Log Findings to Effectiveness Tracker
+
+After all review rounds complete, append a new section to `docs/plan-review-effectiveness.md` under the `## Plan Review Log` heading:
+
+```markdown
+### [Branch Name] -- [Feature Description]
+
+**Date:** [YYYY-MM-DD]
+**Models:** [list of models used]
+**Rounds:** [number of review rounds]
+
+| Finding       | Flagged By    | Category         | Consensus | Disposition | Reasoning |
+| ------------- | ------------- | ---------------- | --------- | ----------- | --------- |
+| [description] | Claude, Codex | `failure-modes`  | Majority  | Fixed       | --        |
+| [description] | Gemini        | `data-integrity` | Solo      | Skipped     | [why]     |
+
+**Key takeaways:** [auto-generated summary of what was found and patterns observed]
+```
+
+Then update the tracking tables in `docs/plan-review-effectiveness.md`:
+
+- **Model Hit Rate by Category**: For each finding, increment `total opportunities` for every model that reviewed. Increment `caught` for each model that flagged the finding.
+- **Model Profiles**: Update if new strengths or blind spots become apparent.
+- **Aggregate Metrics**: Update with the new data point.
+
+This logging step is mandatory and automated -- if the skill runs, the data gets logged.
 
 ## Interaction With Other Skills
 

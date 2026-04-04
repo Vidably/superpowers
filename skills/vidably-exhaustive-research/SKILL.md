@@ -154,6 +154,30 @@ echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"branch\":\"$(git branch --sho
 
 Replace `OPTIONS_COUNT` and `SOURCES_COUNT` with the actual numbers from this research session.
 
+## Step 7b: Log Research to Effectiveness Tracker
+
+After the user approves an option, append a new section to `docs/research-effectiveness.md` under the `## Research Log` heading:
+
+````markdown
+### [Branch Name] -- [Decision Topic]
+
+**Date:** [YYYY-MM-DD]
+**Models:** [list of models consulted]
+
+| Field                         | Value                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------- |
+| **Per-model option count**    | Claude: X, Codex: Y, Gemini: Z                                                              |
+| **Decision source**           | [which model(s) surfaced the chosen option]                                                 |
+| **Per-model unique insights** | Claude: [one-liner or "none"]. Codex: [one-liner or "none"]. Gemini: [one-liner or "none"]. |
+| **Source quality**            | Claude: pass/fail. Codex: pass/fail. Gemini: pass/fail.                                     |
+| **Option overlap**            | [N options surfaced by 2+ models independently]                                             |
+| **Downstream surprise**       | [left blank -- tagged during code review retro if applicable]                               |
+
+**Decision:** [chosen option and one-line rationale]
+````
+
+This logging step is mandatory and automated -- if the skill runs and the user makes a decision, the data gets logged.
+
 ## Interaction With Other Skills
 
 - `TRIGGERS BEFORE: brainstorming` — Research feeds into brainstorming options. If a Type 1 decision arises during brainstorming, pause and run this skill first.
