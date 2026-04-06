@@ -185,12 +185,14 @@ If the Gemini CLI is unavailable or you want faster results, call the Gemini API
 
 Deduplicate findings across models. Apply consensus scoring:
 
-| Consensus     | Definition                      | Action                                  |
-| ------------- | ------------------------------- | --------------------------------------- |
-| **Unanimous** | All reviewing models flagged it | Fix immediately — highest confidence    |
-| **Majority**  | >50% of models flagged it       | Strongly recommend fixing               |
-| **Split**     | Exactly 2 models disagree       | Use judgment — apply project philosophy |
-| **Solo**      | One model only                  | Evaluate on merit — do NOT auto-dismiss |
+| Consensus     | Definition                      |
+| ------------- | ------------------------------- |
+| **Unanimous** | All reviewing models flagged it |
+| **Majority**  | >50% of models flagged it       |
+| **Split**     | Exactly 2 models disagree       |
+| **Solo**      | One model only                  |
+
+See the **Action Policy** above for how to act on each level.
 
 **Critical finding from any model = fix it.** A solo critical (bug, security, data loss) should be fixed regardless of consensus. Consensus matters more for important/minor findings.
 

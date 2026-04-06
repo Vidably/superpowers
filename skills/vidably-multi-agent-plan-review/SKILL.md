@@ -89,12 +89,14 @@ This provides perspective diversity even with a single model family.
 
 After all models respond, deduplicate findings by theme and apply consensus scoring:
 
-| Consensus Level                    | Definition                             | Default Action                              |
-| ---------------------------------- | -------------------------------------- | ------------------------------------------- |
-| **Unanimous** (all models agree)   | Every model that reviewed flagged this | Fix it — high confidence                    |
-| **Majority** (>50% agree, not all) | Most models flagged it, some didn't    | Likely fix — investigate carefully          |
-| **Split** (2+ agree, ≤50%)         | Models disagree                        | Use judgment — apply project philosophy     |
-| **Solo** (1 model only)            | Only one model flagged it              | Evaluate independently — don't auto-dismiss |
+| Consensus Level                    | Definition                             |
+| ---------------------------------- | -------------------------------------- |
+| **Unanimous** (all models agree)   | Every model that reviewed flagged this |
+| **Majority** (>50% agree, not all) | Most models flagged it, some didn't    |
+| **Split** (2+ agree, ≤50%)         | Models disagree                        |
+| **Solo** (1 model only)            | Only one model flagged it              |
+
+See the **Action Policy** above for how to act on each level.
 
 **Scoring formula:** `severity × agreement_count` — findings flagged by more models rank higher.
 
@@ -162,7 +164,7 @@ This is the same re-review pattern the GH Action uses — each round reviews fre
 | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | "The plan looks fine, no need for multi-model review"             | You wrote the plan. You have blind spots. That's exactly why we use multiple models.       |
 | "Only one external model is available, not worth it"              | Two perspectives (Claude + one external) is still better than one. Dispatch what you have. |
-| "The findings are all minor"                                      | Present them anyway. The user decides what's minor, not you.                               |
+| "The findings are all minor"                                      | Present them anyway. The consensus map shows the user what was found; the Action Policy governs disposition. |
 | "I'll just incorporate the feedback myself without presenting it" | The consensus map IS the deliverable. The user must see which models agreed and disagreed. |
 | "This is a small plan, multi-model review is overkill"            | Small plans with wrong assumptions waste more time than large plans. Review anyway.        |
 
