@@ -65,7 +65,7 @@ Also dispatch to other models for additional perspectives if available:
 
 Collect their responses and incorporate unique suggestions you didn't find yourself.
 
-**Structured capture (for Step 7b logging):** Before synthesizing, record each model's raw option list separately, noting which options each model surfaced and any cited URLs. This makes the per-model fields in the effectiveness tracker derivable from captured data rather than reconstructed from memory.
+**Structured capture (for Step 7b logging):** Before synthesizing, record each model's raw option list separately in working memory, noting which options each model surfaced and any cited URLs. This is transient context only -- do not persist raw captures to files or logs (they may contain internal URLs or sensitive details). The per-model fields in the effectiveness tracker are derived from this captured data rather than reconstructed from memory.
 
 ## Step 3: Generate Exhaustive Options
 

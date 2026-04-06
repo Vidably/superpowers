@@ -369,8 +369,10 @@ For each finding where the answer is yes, route to the correct tracker:
 Entry format:
 
 ```markdown
-- **[Date]** -- Branch: `[branch-name]`. Code review found `[category]` issue: [one-line description]. [Research/Plan review] had the opportunity to catch this but didn't.
+- **[Date]** -- Branch: `[branch-name]`. Code review found `[category]` issue: [one-line description]. [Research/Plan review] had the opportunity to catch this but didn't. (tagged_by: [agent], confidence: high/medium/low, reason: [one line])
 ```
+
+This is agent-assisted tagging, not fully automatic. If confidence is "low," flag the entry for human review rather than auto-appending.
 
 4. Note the category and model attribution -- this feeds into the upstream model profiles over time.
 
