@@ -281,7 +281,7 @@ Present each proposal:
 | [description] | Maturity-gated (scale) | None — revisit at `scale`                           |
 | [description] | One-off                | None                                                |
 
-Then STOP and wait for user approval on each convention/skill proposal. Apply approved changes and commit them alongside the PR.
+Then STOP and wait for user approval on each convention/skill proposal. Apply approved changes and commit them alongside the PR. (Convention proposals modify the review system itself, so they are excluded from the Action Policy and require explicit approval.)
 
 ## Step 8: Proceed to PR
 
@@ -360,15 +360,21 @@ Check if this branch has upstream logs in `docs/research-effectiveness.md` or `d
 
 If upstream logs exist, review each code review finding and ask: **could upstream (research or plan review) have caught this?**
 
-For each finding where the answer is yes:
+For each finding where the answer is yes, route to the correct tracker:
 
-1. Add an entry to the **Downstream Surprise Log** in `docs/research-effectiveness.md`:
+1. If the upstream log was in `docs/plan-review-effectiveness.md`, add an entry to **its** Downstream Surprise Log.
+2. If the upstream log was in `docs/research-effectiveness.md`, add an entry to **its** Downstream Surprise Log.
+3. If both stages had the opportunity, add one entry to each.
+
+Entry format:
 
 ```markdown
-- **[Date]** -- Branch: `[branch-name]`. Code review found `[category]` issue: [one-line description]. Research/plan review had the opportunity to catch this but didn't.
+- **[Date]** -- Branch: `[branch-name]`. Code review found `[category]` issue: [one-line description]. [Research/Plan review] had the opportunity to catch this but didn't.
 ```
 
-2. Note the category and model attribution -- this feeds into the plan review and research model profiles over time.
+4. Note the category and model attribution -- this feeds into the upstream model profiles over time.
+
+**Sanitization rule:** Log normalized summaries only. Do not include secrets, tokens, PII, customer identifiers, raw payloads, or exploit details in downstream surprise entries.
 
 If no upstream logs exist for this branch, skip this step. Not every branch goes through the full chain, and that's fine -- the data accumulates over time.
 

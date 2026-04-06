@@ -65,6 +65,8 @@ Also dispatch to other models for additional perspectives if available:
 
 Collect their responses and incorporate unique suggestions you didn't find yourself.
 
+**Structured capture (for Step 7b logging):** Before synthesizing, record each model's raw option list separately, noting which options each model surfaced and any cited URLs. This makes the per-model fields in the effectiveness tracker derivable from captured data rather than reconstructed from memory.
+
 ## Step 3: Generate Exhaustive Options
 
 List every viable approach, including unconventional ones. Minimum 4 options.
@@ -176,7 +178,17 @@ After the user approves an option, append a new section to `docs/research-effect
 **Decision:** [chosen option and one-line rationale]
 ````
 
-This logging step is mandatory and automated -- if the skill runs and the user makes a decision, the data gets logged.
+Then update the **Aggregate Model Profiles** table in `docs/research-effectiveness.md`:
+
+- **Tends to Surface Winning Option**: Update based on whether this model surfaced the chosen option.
+- **Unique Insight Rate**: Update based on whether this model contributed insights no other model surfaced.
+- **Source Quality Rate**: Update based on pass/fail for this session.
+
+If the user rejects all options or abandons the decision, still log the entry with Decision: "[abandoned -- reason]". This tracks research quality even when it doesn't produce a decision.
+
+**Sanitization rule:** Log normalized summaries only. Do not include secrets, tokens, PII, customer identifiers, raw payloads, or exploit details in effectiveness tracker entries.
+
+This logging step is mandatory and automated -- if the skill runs, the data gets logged.
 
 ## Interaction With Other Skills
 

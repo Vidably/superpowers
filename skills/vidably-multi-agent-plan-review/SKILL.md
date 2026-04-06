@@ -83,6 +83,8 @@ Dispatch the plan to all available models **in parallel** for independent review
 
 This provides perspective diversity even with a single model family.
 
+**Fallback reviewer identity:** When logging to the effectiveness tracker, collapse fallback Claude subagents into a single logical "Claude" reviewer. Do not count them as two separate models -- the hit-rate matrix tracks model architectures, not prompt variants.
+
 ## Step 3: Collect and Score Findings
 
 After all models respond, deduplicate findings by theme and apply consensus scoring:
@@ -131,12 +133,12 @@ Present findings to the user in this format:
 
 Present the consensus map, then proceed to apply fixes based on the Action Policy above. The user can intervene if they disagree, but the default is autonomous action.
 
-## Step 5: Apply Approved Changes and Re-Review
+## Step 5: Apply Fixes and Re-Review
 
-After user reviews the consensus map:
+After presenting the consensus map, apply fixes per the Action Policy:
 
-1. Apply approved changes to the plan file
-2. Note rejected findings and reasons
+1. Apply fixes to the plan file based on consensus level
+2. Note skipped findings with reasoning (logged in Step 6b)
 3. Re-read the updated plan to verify consistency
 
 **If changes were made, re-review (up to 3 rounds total):**
@@ -166,7 +168,7 @@ This is the same re-review pattern the GH Action uses — each round reviews fre
 
 ## Step 6: Update Workflow State and Event Log
 
-After the user approves the final consensus map (plan review complete), update the enforcement state. **This is the gate key — once this fires, the Write/Edit implementation gate unlocks.**
+After all review rounds complete and findings have been acted on per the Action Policy, update the enforcement state. The user can intervene at any point, but the default is autonomous completion. **This is the gate key — once this fires, the Write/Edit implementation gate unlocks.**
 
 ```bash
 # Update workflow state (this unlocks the implementation gate)
@@ -211,6 +213,8 @@ Then update the tracking tables in `docs/plan-review-effectiveness.md`:
 - **Model Hit Rate by Category**: For each finding, increment `total opportunities` for every model that reviewed. Increment `caught` for each model that flagged the finding.
 - **Model Profiles**: Update if new strengths or blind spots become apparent.
 - **Aggregate Metrics**: Update with the new data point.
+
+**Sanitization rule:** Log normalized summaries only. Do not include secrets, tokens, PII, customer identifiers, raw payloads, or exploit details in effectiveness tracker entries.
 
 This logging step is mandatory and automated -- if the skill runs, the data gets logged.
 
