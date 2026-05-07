@@ -18,19 +18,36 @@ Do NOT open a PR or invoke finishing-a-development-branch until:
 3. Consensus scoring has been applied
 4. Findings have been acted on based on consensus level (see Action Policy below)
 5. If fixes were applied, re-review has been run on the updated diff
-6. Convention extraction completed
+6. Prevention promotion completed
 </HARD-GATE>
+
+## Disposition Guardrails (re-read before every fix decision)
+
+The reviewer's job is **maximum recall** — find every concrete concern. The author's job (you, applying findings) is **maximum precision** — fix only what serves the project right now. These belong on different sides of the prompt boundary; do not put filtering instructions in reviewer prompts (it causes false negatives we can't recover).
+
+For every finding, before applying a fix, answer:
+
+1. **Does NOT fixing this ship a real user-facing bug today** in the current demo flow or near-term real app trajectory?
+2. **Is the fix the smallest possible change** to address the harm?
+3. **Does the project's current maturity level** (read `AGENTS.md`) require defending against this case?
+
+If any answer is "no" or "not really" → **defer to follow-up issue**, not fix.
+
+**Default disposition is defer.** Treat "fix" as the exceptional path. "More robust", "what if", "edge case that could happen", "consistency with X future state" → defer. Hypothetical correctness drift is the dominant failure mode of multi-round review; this default is the counterweight.
+
+**"Defer to follow-up" is a first-class disposition.** Not a cop-out. File a Linear issue with the finding's reasoning + reproduction conditions + when-to-revisit trigger, link it from the PR, and move on. Real concerns survive in the backlog without bloating the current PR.
 
 ## Action Policy
 
-Act on findings autonomously based on consensus level:
+Act on findings autonomously based on consensus level AND the Disposition Guardrails above. Consensus is signal about reviewer agreement; guardrails determine whether to fix or defer that signal.
 
-| Consensus     | Action                                                                                                                                       |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Unanimous** | Fix immediately -- highest confidence                                                                                                        |
-| **Majority**  | Fix -- strong signal across models                                                                                                           |
-| **Split**     | Use judgment. Fix if the finding has concrete consequences; skip if it's a style or preference disagreement. Log your reasoning.             |
-| **Solo**      | Evaluate on merit. Fix if critical severity regardless of consensus. For important/minor, fix if the reasoning is sound. Log your reasoning. |
+| Consensus     | Action (after Disposition Guardrails check)                                                                                                                |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Unanimous** | Strongest signal. Fix if guardrails pass; otherwise defer with explicit reasoning + follow-up issue. Do not silently dismiss a unanimous finding.          |
+| **Majority**  | Strong signal. Same as Unanimous: fix or defer; document either way.                                                                                       |
+| **Split**     | Use judgment. Fix if guardrails pass AND the finding has concrete consequences; otherwise defer. Skip outright only for style or preference disagreements. |
+| **Solo**      | Fix if critical severity (real bug, security, data loss). For important/minor, default to defer unless the harm is concrete and present.                   |
+| **Defer**     | First-class disposition. File follow-up Linear issue with: finding text, reasoning, when-to-revisit trigger. Link from PR body. Do NOT fix in current PR.  |
 
 Present the consensus map to the user for awareness, but do not wait for per-finding approval. The user reviews aggregate effectiveness data periodically, not individual findings.
 
@@ -149,7 +166,11 @@ For each finding:
 - Why it matters (concrete consequence)
 - Suggested fix (complete code, not "consider adding...")
 
-Do NOT flag: style/formatting, missing comments, import ordering, test coverage for unchanged code, or suggestions that add complexity without proportional value.
+Do NOT flag: style/formatting, missing comments, import ordering, code golf / "could be more elegant", or test coverage for unchanged code.
+
+DO flag every concrete concern with a real user-facing consequence — even if you suspect it might be out of scope, even if you're unsure of project maturity, even if the fix would be significant work. The author has the project context to filter (maturity level, what's already deferred, what's planned for next milestone); you don't. **Your job is maximum recall on real bugs, contract violations, and security issues.** Self-censoring based on assumed scope causes false negatives, which are the more expensive failure mode. The author is the single point of disposition — they will defer to a follow-up issue when appropriate.
+
+SEVERITY FLOOR: if a finding maps directly to a rule in AGENTS.md's defensive checklist, severity is AT LEAST `important`. Do not downgrade to `minor` or "non-blocking" for something the project has explicitly documented as a required pattern. If you want to argue the rule doesn't apply here, quote the rule and explain why — don't silently lower the severity. (PR #147 — `sql NOW()` rule was rated minor, actually important.)
 
 SEVERITY FLOOR: if a finding maps directly to a rule in AGENTS.md's defensive checklist, severity is AT LEAST `important`. Do not downgrade to `minor` or "non-blocking" for something the project has explicitly documented as a required pattern. If you want to argue the rule doesn't apply here, quote the rule and explain why — don't silently lower the severity. (PR #147 — `sql NOW()` rule was rated minor, actually important.)
 
@@ -261,16 +282,17 @@ For each approved finding:
 
 **If fixes were made, re-review (up to 3 rounds total):**
 
-5. Compute the UPDATED diff: `git diff main...HEAD`
-6. Dispatch to all available models again (Steps 3-5)
-7. Present the new consensus map to the user
+5. **Re-read the Disposition Guardrails block** (top of this skill) before continuing. Each round's fixes added new code; that new code will get new findings; without re-anchoring, the discipline drifts. Specifically check: did round N's fixes add net code without removing concrete real-today risk? If so, you're already over-engineering — consider reverting the round-N commit before continuing instead of running another round.
+6. Compute the UPDATED diff: `git diff main...HEAD`
+7. Dispatch to all available models again (Steps 3-5)
+8. Present the new consensus map to the user
 
 **Round policy:**
 
-- **Round 1:** Address all findings
-- **Round 2:** Address findings from round 2 reviews only (issues introduced by round 1 fixes, or issues missed in round 1)
-- **Round 3:** Only critical findings. Everything else is deferred.
-- **Stop early:** If a round produces zero accepted findings, the code is ready. Don't force more rounds.
+- **Round 1:** Address findings per Disposition Guardrails — fix or defer.
+- **Round 2:** Reviewers see the round-1 fixes. Default disposition is even more biased toward **defer** here — round-2 findings are usually adjacent concerns or introduced by round-1 fixes. If round-2 fixes accumulate net code beyond what round-1 introduced, stop and revert.
+- **Round 3:** Only critical findings (real bug, security, data loss). Everything else is deferred to follow-up. Most PRs should not need round 3.
+- **Stop early:** If a round produces zero findings _that pass the Disposition Guardrails_, the code is ready. Don't force more rounds. (Note: "zero findings" is not the only stop condition — "all findings deferred" also stops.)
 
 This is the same re-review pattern the GH Action uses — each round reviews fresh code, not the same code debated again.
 
@@ -297,29 +319,41 @@ node scripts/measurement/render-talk-report.mjs >/dev/null 2>&1 || true
 
 Replace `MODELS_LIST` with a JSON array (e.g., `[\"codex\",\"gemini\"]`), `FINDINGS_COUNT` with total findings, and `ROUNDS_COUNT` with review rounds completed.
 
-## Step 7: Convention Extraction
+## Step 7: Prevention Promotion
 
-After all review rounds are complete and verification passes, automatically extract systemic lessons. This step runs every time — it's how the system self-improves.
+After all review rounds are complete and verification passes, automatically extract systemic lessons. This step runs every time -- it is how the system self-improves.
 
-**Read the project maturity level** from the `### Project Maturity` section of `AGENTS.md`. Use it to calibrate classifications below.
+Do not default to Markdown. For every finding, choose the highest practical prevention tier before proposing any `AGENTS.md` or skill text change.
 
-For each finding from all rounds (accepted, dismissed, and false positives), classify:
+**Read the project maturity level** from `AGENTS.md` (for example, `Current maturity: launch`). Use it to calibrate classifications below.
 
-1. **CONVENTION GAP** — a rule in AGENTS.md would have prevented this finding from being written in the first place. Draft the exact addition: which section, what text, where it goes.
-2. **SKILL GAP** — this skill or another skill should change its behavior. Draft the exact change to the skill file.
-3. **MATURITY-GATED** — this finding is valid but appropriate for a higher maturity level than the current one. No action needed now. Note which level it belongs to.
-4. **ONE-OFF** — specific to this code, no systemic lesson. No action needed.
+For each finding from all rounds (accepted, dismissed, and false positives), classify the finding class:
+
+1. **TIER 1: PREVENT** -- make the issue impossible or hard to write before review. Prefer this for deterministic, low-false-positive patterns. Mechanisms: type constraint, branded type, helper API, template, generated file check, simple ESLint selector, or focused preflight/static script.
+2. **TIER 2: DETECT** -- catch the issue automatically before merge. Use this when runtime behavior or cross-file context makes Tier 1 too brittle. Mechanisms: unit test, E2E test, contract test, CI script, preview smoke check, or narrowly sharpened review prompt.
+3. **TIER 3: LEARN** -- capture guidance for future humans/agents. Use this only for judgment-heavy, product-intent-dependent, maturity-gated, rare, or one-off findings. Mechanisms: `AGENTS.md`, scoped `AGENTS.md`, this skill, model profiles, or `docs/review-effectiveness.md`.
+4. **NO ACTION** -- false positive, accepted risk, maturity-gated above current level, or code-specific one-off with no reusable lesson.
+
+Use this target-surface order when several options fit:
+
+1. Type/helper/template
+2. Simple built-in ESLint selector (`no-restricted-*`)
+3. Focused preflight/static script
+4. Test or CI check
+5. Review prompt or `AGENTS.md`
+
+Only propose a custom ESLint rule when the pattern is recurrent or critical, AST-local, explainable in one sentence, has low expected false positives, and can be covered with valid/invalid fixtures. If the rule needs product intent, PR scope, external docs, live service state, database contents, or semantic architecture judgment, do not put it in ESLint.
 
 Present each proposal:
 
-| Finding       | Classification         | Proposed Change                                     |
-| ------------- | ---------------------- | --------------------------------------------------- |
-| [description] | Convention gap         | [exact text to add to AGENTS.md, including section] |
-| [description] | Skill gap              | [exact change to skill file]                        |
-| [description] | Maturity-gated (scale) | None — revisit at `scale`                           |
-| [description] | One-off                | None                                                |
+| Finding       | Class                    | Highest practical tier | Mechanism                 | Why this tier                                    | Proposed change            |
+| ------------- | ------------------------ | ---------------------- | ------------------------- | ------------------------------------------------ | -------------------------- |
+| [description] | Reusable deterministic   | Tier 1                 | preflight script          | Cross-file invariant; ESLint would be brittle    | [exact file/script change] |
+| [description] | Runtime behavior         | Tier 2                 | unit test                 | Needs behavior proof, not syntax matching        | [exact test to add]        |
+| [description] | Judgment / product scope | Tier 3                 | `AGENTS.md` or this skill | Needs reviewer judgment; Tier 1/2 would be noisy | [exact text and section]   |
+| [description] | One-off / false positive | No action              | none                      | No reusable class or accepted risk               | None                       |
 
-Then STOP and wait for user approval on each convention/skill proposal. Apply approved changes and commit them alongside the PR. (Convention proposals modify the review system itself, so they are excluded from the Action Policy and require explicit approval.)
+If a finding stays at Tier 3, explicitly state why Tier 1 and Tier 2 are not worth the added complexity. Then STOP and wait for user approval on each prevention proposal. Apply approved changes and commit them alongside the PR. (Prevention proposals modify the review system itself, so they are excluded from the Action Policy and require explicit approval.)
 
 ## Step 8: Proceed to PR
 
@@ -329,7 +363,7 @@ After review is complete and verified, invoke `finishing-a-development-branch` t
 
 **Trigger:** After CI review comments appear on the PR. This step is MANDATORY — it's how the system learns. Do not skip it even if CI found nothing new.
 
-**This step runs automatically.** Do not wait for the user to ask "why did CI catch that?" — the whole point is that the system reflects without being prompted.
+**This step runs automatically.** Do not wait for the user to ask "why did CI catch that?" -- the whole point is that the system reflects without being prompted. Collection, classification, and prevention proposals are automatic; applying prevention changes that modify the review system still requires user approval per Step 7.
 
 ### 9a: Collect CI Findings
 
@@ -344,21 +378,32 @@ gh api repos/Vidably/app/issues/<PR_NUMBER>/comments --jq '.[] | select(.user.lo
 
 For each CI finding, classify:
 
-| Classification                   | Meaning                                            | Action                                               |
-| -------------------------------- | -------------------------------------------------- | ---------------------------------------------------- |
-| **Already fixed**                | Local review caught this and we fixed it before PR | None — CI reviewed stale code                        |
-| **New — would have been caught** | Finding falls into an existing checklist category  | Investigate why the prompt didn't surface it         |
-| **New — blind spot**             | Finding is a category we don't check for yet       | Add to Finding Categories table + evolving checklist |
-| **New — model limitation**       | We check for this, but the model(s) missed it      | Update Model Profiles table                          |
-| **False positive**               | CI flagged something that isn't actually an issue  | Note it — track CI false positive rate too           |
+| Classification                   | Meaning                                            | Action                                                |
+| -------------------------------- | -------------------------------------------------- | ----------------------------------------------------- |
+| **Already fixed**                | Local review caught this and we fixed it before PR | None — CI reviewed stale code                         |
+| **New — would have been caught** | Finding falls into an existing prevention category | Investigate why the existing mechanism did not fire   |
+| **New — blind spot**             | Finding is a class we do not prevent or detect yet | Run prevention promotion before adding checklist text |
+| **New — model limitation**       | We check for this, but the model(s) missed it      | Update Model Profiles table                           |
+| **False positive**               | CI flagged something that isn't actually an issue  | Note it — track CI false positive rate too            |
 
-### 9c: Update the System
+### 9c: Promote Prevention
+
+For each genuine new finding (`New — would have been caught`, `New — blind spot`, or `New — model limitation`):
+
+1. Identify the reusable **class** of issue, not just the instance.
+2. Choose the highest practical prevention tier using Step 7:
+   - Tier 1: type/helper/template, simple ESLint selector, or focused preflight/static script.
+   - Tier 2: unit/E2E/contract test, CI check, preview smoke check, or targeted review-prompt detection.
+   - Tier 3: `AGENTS.md`, scoped `AGENTS.md`, this skill, model profile, or tracker guidance.
+3. If Tier 3 is selected, state why Tier 1 and Tier 2 are not worth the complexity or false-positive risk.
+4. Add or update the **Prevention Registry** in `docs/review-effectiveness.md`.
+5. Implement the approved prevention change, or document accepted risk if no change is warranted.
 
 For each "New — blind spot" finding:
 
-1. Add a row to the **Finding Categories** table with the source PR
-2. Add a line to the **"ALSO specifically check for"** section of the review prompt (Step 3)
-3. Add to the **per-model prompt specialization** if it maps to a model's blind spot
+1. Add a row to the **Finding Categories** table only if the taxonomy truly lacks a category.
+2. Add to the **"ALSO specifically check for"** section only when the chosen tier is prompt-based detection or learning.
+3. Add to the **per-model prompt specialization** if it maps to a model's blind spot.
 
 For each "New — model limitation" finding:
 
@@ -374,11 +419,18 @@ Add a retrospective entry:
 
 | CI Finding    | Category        | Classification   | Action Taken        |
 | ------------- | --------------- | ---------------- | ------------------- |
-| [description] | `failure-modes` | New — blind spot | Added to checklist  |
+| [description] | `failure-modes` | New — blind spot | Tier 2 test added   |
 | [description] | `auth/security` | Already fixed    | None (stale review) |
 
+**Prevention promotion:**
+
+| Finding Class | Highest practical tier | Mechanism | Why this tier                                 | Files changed |
+| ------------- | ---------------------- | --------- | --------------------------------------------- | ------------- |
+| [class]       | Tier 1                 | preflight | Cross-file invariant; low false-positive risk | `scripts/...` |
+
 **CI-catches-local-missed (genuine):** X (down from Y last PR)
-**New checklist items added:** Z
+**Tier 1/2 promotions:** Z
+**Tier 3 learning items:** N
 **Model profile updates:** [list]
 ```
 
@@ -387,7 +439,7 @@ Add a retrospective entry:
 Check the running trend in review-effectiveness.md:
 
 - Is "CI catches local missed" trending down? If yes, the system is learning.
-- If it's flat or rising, the retrospective isn't producing effective checklist items — flag this to the user.
+- If it's flat or rising, the retrospective isn't producing effective prevention mechanisms — flag this to the user.
 - Are any categories consistently missed by ALL local models? That's a systemic gap — consider adding a 4th model or a specialized linter.
 
 **The goal: CI should catch ZERO new findings that local review missed.** Every non-zero number is a learning opportunity, not a failure.
