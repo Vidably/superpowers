@@ -355,6 +355,14 @@ Present each proposal:
 
 If a finding stays at Tier 3, explicitly state why Tier 1 and Tier 2 are not worth the added complexity. Then STOP and wait for user approval on each prevention proposal. Apply approved changes and commit them alongside the PR. (Prevention proposals modify the review system itself, so they are excluded from the Action Policy and require explicit approval.)
 
+### Tier 3 rule shape (mandatory)
+
+Dispatch-prompt and `AGENTS.md` rules promoted via this step **MUST be conditional, not absolute**. State both when the rule applies AND the case where applying it would be wrong.
+
+**Format:** "When `[condition]`, do `[action]`. Do NOT do `[action]` when `[counter-condition]` because `[concrete harm]`."
+
+**Reject draft rules in absolute form** ("Every X needs Y", "Always do X"). A rule that names only the positive case becomes a landmine for the next contributor whose case is the exception: the rule pushes them toward the wrong action, and the next reviewer cannot flag the resulting bug because the rule says it is correct. The negative space must be explicit so that "this rule does not apply here" is a legitimate disposition.
+
 ## Step 8: Proceed to PR
 
 After review is complete and verified, invoke `finishing-a-development-branch` to open the PR. The PR will then receive the GH Action review (Claude + Security + Codex) as a safety net, but most issues should already be caught by this local review.
